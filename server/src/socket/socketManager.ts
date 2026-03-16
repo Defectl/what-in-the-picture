@@ -4,9 +4,14 @@ import {
   addPlayerToGame, 
   updatePlayerScore, 
   updatePlayerStatus,
-  removePlayerFromGame 
+  removePlayerFromGame, 
+  setImagesForUser,
+  getMainPlayer,
+  createGameRound,
+  setImageToRound
 } from '../db/database.ts';
 import { LobbyUpdate } from '../types.ts';
+import { v4 as uuidv4 } from 'uuid';
 
 interface SocketData {
   playerId?: string;
@@ -68,6 +73,63 @@ export class SocketManager {
         } catch (error) {
           console.error('Error updating status:', error);
           socket.emit('error', { message: 'Failed to update status' });
+        }
+      });
+
+      socket.on('get-start-images', async ({ hash }) => {
+        try {
+          const players = await getGamePlayers(hash);
+          const activePlayers = players.filter((player) => player.role === 'Player' && player.status === 'Active');
+          for (const player of activePlayers) {
+            await setImagesForUser(3, hash, player.id)
+          }
+          const mainPlayer = await getMainPlayer(hash)
+          const updatedUsers = await getGamePlayers(hash);
+          console.log(updatedUsers);
+          this.io.to(hash).emit('lobby-update', {
+            type: 'start_images',
+            players: updatedUsers,
+            player: mainPlayer,
+            hash
+          } as LobbyUpdate);
+        } catch (error) {
+          console.error('Error set started images:', error);
+          socket.emit('error', { message: 'Failed to set started images' });
+        }
+      });
+
+      socket.on('set-word-round', async ({ hash, mainPlayerId, word }) => {
+        try {
+          const idRound = uuidv4();
+
+          await createGameRound(idRound, hash, mainPlayerId, word);
+
+          this.io.to(hash).emit('lobby-update', {
+            type: 'take-image',
+            hash,
+            roundData: { id: idRound, mainPlayer: mainPlayerId, word: word}
+          } as LobbyUpdate);
+        } catch (error) {
+          console.error('Error set started images:', error);
+          socket.emit('error', { message: 'Failed to set started images' });
+        }
+      });
+
+      socket.on('set-image-to-round', async ({ hash, roundId, playerId, imageUrl }) => {
+        try {
+          console.log(roundId);
+          const updatedRoundData = await setImageToRound(roundId, playerId, imageUrl);
+
+          console.log(updatedRoundData)
+
+          this.io.to(hash).emit('lobby-update', {
+            type: 'take-image',
+            hash,
+            roundData: updatedRoundData
+          } as LobbyUpdate);
+        } catch (error) {
+          console.error('Error set started images:', error);
+          socket.emit('error', { message: 'Failed to set started images' });
         }
       });
 

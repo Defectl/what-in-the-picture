@@ -5,6 +5,8 @@ export type Player = {
   score: number;
   status?: PlayerStatus;
   isHost?: boolean;
+  isMain?: boolean;
+  imageIds?: string[];
 }
 
 export type PlayerRole = 'Player' | 'Spectator';
@@ -17,11 +19,24 @@ export type Game = {
   players: Player[];
 }
 
+export interface ImageInRound {
+  imageUrl: string;
+  playerId: string;
+}
+
+export interface Round {
+  id: string,
+  word: string,
+  mainPlayer: string,
+  images?: ImageInRound[]
+}
+
 export type LobbyUpdate = {
-  type: 'player_joined' | 'player_left' | 'status_changed';
+  type: 'player_joined' | 'player_left' | 'status_changed' | 'start_images' | 'take-image';
   player?: Player;
   players: Player[];
   hash: string;
+  roundData?: Round
 }
 
 export type CreateGameResponse = {

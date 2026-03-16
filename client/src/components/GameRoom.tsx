@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Player, PlayerStatus } from '../types';
 import { useSocket } from '../hooks/useSocket';
-import { Button } from '@skbkontur/react-ui';
+import { Button, Gapped } from '@skbkontur/react-ui';
+import './styles.module.css';
+import { StartImages } from './StartImages';
 
 interface GameRoomProps {
   hash: string;
@@ -13,7 +15,17 @@ interface GameRoomProps {
 export function GameRoom({ hash, code, player, initialPlayers = [] }: GameRoomProps) {
   const [players, setPlayers] = useState<Player[]>(initialPlayers);
   const [currentPlayer, setCurrentPlayer] = useState<Player>(player);
-  const { lobbyState, joinGameRoom, updateScore, updateStatus, isConnected, socket } = useSocket(hash);
+  const { 
+    lobbyState, 
+    joinGameRoom, 
+    updateScore, 
+    updateStatus, 
+    isConnected, 
+    socket, 
+    getStartImages,
+    setWordRound,
+    setImageToRound
+  } = useSocket(hash);
 
   const isConnectedToSocket = socket && isConnected;
 
@@ -27,10 +39,43 @@ export function GameRoom({ hash, code, player, initialPlayers = [] }: GameRoomPr
     if (isConnectedToSocket && lobbyState?.players) {
       setPlayers(lobbyState.players);
       const currPlayer = lobbyState.players.find((playerFromDb) => playerFromDb.id === player.id);
-      console.log(currPlayer)
       currPlayer && setCurrentPlayer(currPlayer);
     }
   }, [lobbyState, isConnectedToSocket]);
+
+  if (lobbyState?.type === 'start_images') {
+    const currPlayer = players.find((player) => player.id === currentPlayer.id)
+    return <StartImages hash={hash} currPlayer={currPlayer} players={players} setWordRound={setWordRound} />;
+  }
+
+  if(lobbyState?.type === 'take-image') {
+    const currPlayer = players.find((player) => player.id === currentPlayer.id)
+    const mainPlayer = players.find((player) => player.id === lobbyState.roundData?.mainPlayer)
+    console.log(lobbyState)
+    return (
+      <Gapped gap={32} verticalAlign='top'>
+        <Gapped gap={8} vertical>
+          {players.map((player) => 
+            <span>
+              {player.name} {lobbyState.roundData?.images?.map((image) => image.playerId).includes(currPlayer!.id) ? 'выбрал' : 'не выбрал'} картинку
+            </span>
+          )}
+        </Gapped>
+        <Gapped gap={24} vertical>
+          <Gapped gap={12} vertical>
+            <span>Игрок {mainPlayer?.name} выбрал слово {lobbyState.roundData?.word}</span>
+            <span>Выбери картинку, которая наиболее подходит под это слово</span>
+          </Gapped>
+          <div style={{ margin: '0 auto', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-around', gap: '12px'}}>
+              {currPlayer?.imageIds?.map((image) => (<div onClick={() => setImageToRound(hash, lobbyState.roundData!.id, currPlayer.id, image)}>
+                <img style={{ maxHeight: '400px'}} key={image} src={`http://localhost:3001${image}`}/>
+              </div>))}
+          </div>
+        </Gapped>
+      </Gapped>
+    );
+      
+  }
 
   return (
     <div className="game-room">
@@ -73,6 +118,7 @@ export function GameRoom({ hash, code, player, initialPlayers = [] }: GameRoomPr
             disabled={!(players.length > 1 && 
               players.filter((player) => player.status === 'Active').length === players.filter((player) => player.role === 'Player').length)
             }
+            onClick={() => getStartImages(hash)}
            >
             Начать игру
           </Button>

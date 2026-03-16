@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import io, { Socket } from 'socket.io-client';
-import { LobbyUpdate, PlayerStatus } from '../types';
+import { LobbyUpdate, Player, PlayerStatus } from '../types';
 
 const SOCKET_URL = 'http://localhost:3001';
 
@@ -38,8 +38,6 @@ export function useSocket(gameHash?: string) {
   }, []);
 
   const joinGameRoom = (hash: string, player: any) => {
-    console.log(socket);
-    console.log(isConnected);
     if (socket && isConnected) {
       socket.emit('join-game-room', { hash, player });
     }
@@ -53,8 +51,25 @@ export function useSocket(gameHash?: string) {
 
   const updateStatus = (hash: string, playerId: string, status: PlayerStatus) => {
     if (socket && isConnected) {
-      console.log(playerId)
       socket.emit('update-status', { hash, playerId, status });
+    }
+  };
+
+  const getStartImages = (hash: string) => {
+    if (socket && isConnected) {
+      socket.emit('get-start-images', { hash });
+    }
+  };
+
+  const setWordRound = (hash: string, word: string, mainPlayerId?: string) => {
+    if (socket && isConnected && mainPlayerId) {
+      socket.emit('set-word-round', { hash, mainPlayerId, word });
+    }
+  };
+
+  const setImageToRound = (hash: string, roundId: string, playerId: string, imageUrl: string) => {
+    if (socket && isConnected) {
+      socket.emit('set-image-to-round', { hash, roundId, playerId, imageUrl });
     }
   };
 
@@ -64,6 +79,9 @@ export function useSocket(gameHash?: string) {
     lobbyState,
     joinGameRoom,
     updateScore,
-    updateStatus
+    updateStatus,
+    getStartImages,
+    setWordRound,
+    setImageToRound
   };
 }

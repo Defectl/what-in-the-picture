@@ -3,11 +3,17 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import { v4 as uuidv4 } from 'uuid';
-import { initializeDatabase, createGameInDb, getGameByCode, getGamePlayers, addPlayerToGame } from './db/database.ts';
+import { initializeDatabase, createGameInDb, getGameByCode, getGamePlayers, addPlayerToGame, addImages } from './db/database.ts';
 import { SocketManager } from './socket/socketManager.ts';
 import { CreateGameResponse, JoinGameResponse } from './types.ts';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 const app = express();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
@@ -17,6 +23,7 @@ const io = new Server(httpServer, {
 });
 
 app.use(cors());
+app.use('/images', express.static(path.join(__dirname, '../images')))
 app.use(express.json());
 
 // Initialize database
@@ -44,7 +51,7 @@ app.post('/api/games', async (req, res) => {
     
     const { hostPlayer } = await createGameInDb(hash, code, hostName, role);
 
-    console.log(hostPlayer)
+    await addImages(hash);
     
     const response: CreateGameResponse = {
       hash,

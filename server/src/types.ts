@@ -5,6 +5,8 @@ export interface Player {
   score: number;
   status?: PlayerStatus | null;
   socketId?: string;
+  imageIds?: string[];
+  isMain?: boolean;
 }
 
 export type PlayerRole = 'Player' | 'Spectator';
@@ -18,6 +20,29 @@ export interface Game {
   createdAt: Date;
 }
 
+export interface Image {
+  id: number;
+  url: string;
+  isUsed: boolean;
+  usedInGameHash: string;
+}
+
+export interface ImageRow {
+  id: number;
+  image_url: string;
+  is_used: boolean;
+  used_in_game_hash: string;
+}
+
+export interface RoundRow {
+  id: string;
+  hash: string;
+  word: string;
+  main_player_id: string;
+  images: string | null;
+  voits: string | null;
+}
+
 export interface GameRow {
   hash: string;
   code: string;
@@ -27,7 +52,9 @@ export interface GameRow {
   score: number;
   status: string;
   created_at: string;
-  isHost: number
+  isHost: number;
+  isMain: number;
+  image_ids: string;
 }
 
 export interface CreateGameResponse {
@@ -43,9 +70,22 @@ export interface JoinGameResponse {
   error?: string;
 }
 
+export interface ImageInRound {
+  imageUrl: string;
+  playerId: string;
+}
+
+export interface Round {
+  id: string,
+  word: string,
+  mainPlayer: string,
+  images?: ImageInRound[] | null
+}
+
 export type LobbyUpdate = {
-  type: 'player_joined' | 'player_left' | 'status_changed';
+  type: 'player_joined' | 'player_left' | 'status_changed' | 'start_images' | 'take-image';
   player?: Player;
   players: Player[];
   hash: string;
+  roundData?: Round
 }
