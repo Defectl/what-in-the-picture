@@ -24,7 +24,8 @@ export function GameRoom({ hash, code, player, initialPlayers = [] }: GameRoomPr
     socket, 
     getStartImages,
     setWordRound,
-    setImageToRound
+    setImageToRound,
+    voteImage
   } = useSocket(hash);
 
   const isConnectedToSocket = socket && isConnected;
@@ -44,37 +45,81 @@ export function GameRoom({ hash, code, player, initialPlayers = [] }: GameRoomPr
   }, [lobbyState, isConnectedToSocket]);
 
   if (lobbyState?.type === 'start_images') {
-    const currPlayer = players.find((player) => player.id === currentPlayer.id)
-    return <StartImages hash={hash} currPlayer={currPlayer} players={players} setWordRound={setWordRound} />;
+    return <StartImages hash={hash} currPlayer={currentPlayer} players={players} setWordRound={setWordRound} />;
   }
 
   if(lobbyState?.type === 'take-image') {
-    const currPlayer = players.find((player) => player.id === currentPlayer.id)
     const mainPlayer = players.find((player) => player.id === lobbyState.roundData?.mainPlayer)
-    console.log(lobbyState)
     return (
       <Gapped gap={32} verticalAlign='top'>
         <Gapped gap={8} vertical>
           {players.map((player) => 
             <span>
-              {player.name} {lobbyState.roundData?.images?.map((image) => image.playerId).includes(currPlayer!.id) ? 'выбрал' : 'не выбрал'} картинку
+              {player.name} {lobbyState.roundData?.images?.map((image) => image.playerId).includes(player!.id) ? 'выбрал' : 'не выбрал'} картинку
             </span>
           )}
         </Gapped>
-        <Gapped gap={24} vertical>
+        <Gapped style={{display: 'flex', flexWrap: 'wrap', justifyContent: 'space-around', gap: '12px'}} gap={24} vertical>
           <Gapped gap={12} vertical>
             <span>Игрок {mainPlayer?.name} выбрал слово {lobbyState.roundData?.word}</span>
             <span>Выбери картинку, которая наиболее подходит под это слово</span>
           </Gapped>
           <div style={{ margin: '0 auto', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-around', gap: '12px'}}>
-              {currPlayer?.imageIds?.map((image) => (<div onClick={() => setImageToRound(hash, lobbyState.roundData!.id, currPlayer.id, image)}>
+              {currentPlayer?.imageIds?.map((image) => (<div onClick={() => setImageToRound(hash, lobbyState.roundData!.id, currentPlayer.id, image)}>
                 <img style={{ maxHeight: '400px'}} key={image} src={`http://localhost:3001${image}`}/>
               </div>))}
           </div>
         </Gapped>
       </Gapped>
     );
-      
+  }
+
+  if(lobbyState?.type === 'show-all-images') {
+    const isMainPlayer = currentPlayer.id === lobbyState.roundData?.mainPlayer;
+    return (
+      <Gapped gap={32} verticalAlign='top'>
+        <Gapped gap={8} vertical>
+          {players.map((player) => 
+            <span>
+              {player.name} {lobbyState.roundData?.votes?.map((vote) => vote.playerId).includes(player!.id) ? 'проголосовал' : 'не проголосовал'}
+            </span>
+          )}
+        </Gapped>
+      <Gapped style={{display: 'flex', flexWrap: 'wrap', justifyContent: 'space-around', gap: '12px'}} gap={24} vertical>
+          <Gapped gap={12} vertical>
+            {isMainPlayer ? 
+            <span>Ты ведущий в этом раунде. Поэтому просто посмотри, какие картинки выложили другие игроки</span> :
+            <span>Выбери картинку, которая наиболее подходит под это слово. Попробуй найти картинку ведущего</span>
+            }
+            
+          </Gapped>
+          <div style={{ margin: '0 auto', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-around', gap: '12px'}}>
+              {lobbyState.roundData?.images?.map((image) => (<div onClick={() => {
+                !isMainPlayer && voteImage(hash, lobbyState.roundData!.id, currentPlayer.id, image.imageUrl)
+              }}>
+                <img style={{ maxHeight: '400px'}} key={image.imageUrl} src={`http://localhost:3001${image.imageUrl}`}/>
+              </div>))}
+          </div>
+        </Gapped>
+      </Gapped>
+    )
+  }
+
+  if(lobbyState?.type === 'show-open-images') {
+    return (
+      <div style={{ margin: '0 auto', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-around', gap: '12px'}}>
+              {lobbyState.roundData?.images?.map((image) => (<div>
+                <span>Карточка игрока: {players.find((player) => player.id === image.playerId)?.name}</span>
+                <span>Проголосовали:</span>
+                {
+                  lobbyState.roundData?.votes?.filter((vote) => vote.imageUrl === image.imageUrl).map((voteImage) => <span>
+                    {players.find((player) => player.id === voteImage.playerId)?.name}
+                  </span>)
+                }
+                <img style={{ maxHeight: '400px'}} key={image.imageUrl} src={`http://localhost:3001${image.imageUrl}`}/>
+              </div>))}
+          </div>
+    )
   }
 
   return (

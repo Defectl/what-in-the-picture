@@ -8,7 +8,8 @@ import {
   setImagesForUser,
   getMainPlayer,
   createGameRound,
-  setImageToRound
+  setImageToRound,
+  voteImage
 } from '../db/database.ts';
 import { LobbyUpdate } from '../types.ts';
 import { v4 as uuidv4 } from 'uuid';
@@ -117,16 +118,56 @@ export class SocketManager {
 
       socket.on('set-image-to-round', async ({ hash, roundId, playerId, imageUrl }) => {
         try {
-          console.log(roundId);
           const updatedRoundData = await setImageToRound(roundId, playerId, imageUrl);
+          const players = await getGamePlayers(hash);
+          const activePlayers = players.filter((player) => player.role === 'Player' && player.status === 'Active');
 
-          console.log(updatedRoundData)
+          if(updatedRoundData.images?.length === activePlayers.length) {
+            this.io.to(hash).emit('lobby-update', {
+              type: 'show-all-images',
+              hash,
+              roundData: updatedRoundData,
+              players,
+            } as LobbyUpdate);
+          } else {
+            this.io.to(hash).emit('lobby-update', {
+              type: 'take-image',
+              hash,
+              roundData: updatedRoundData,
+              players,
+            } as LobbyUpdate);
+          }
 
-          this.io.to(hash).emit('lobby-update', {
-            type: 'take-image',
-            hash,
-            roundData: updatedRoundData
-          } as LobbyUpdate);
+          
+        } catch (error) {
+          console.error('Error set started images:', error);
+          socket.emit('error', { message: 'Failed to set started images' });
+        }
+      });
+
+      socket.on('vote-image', async ({ hash, roundId, playerId, imageUrl }) => {
+        try {
+          const updatedRoundData = await voteImage(roundId, playerId, imageUrl);
+          const players = await getGamePlayers(hash);
+          const activePlayers = players.filter((player) => player.role === 'Player' && player.status === 'Active' && !player.isMain);
+
+          if(activePlayers.length !== updatedRoundData.votes?.length) {
+            this.io.to(hash).emit('lobby-update', {
+              type: 'show-all-images',
+              hash,
+              roundData: updatedRoundData,
+              players,
+            } as LobbyUpdate);
+          } else {
+            this.io.to(hash).emit('lobby-update', {
+              type: 'show-open-images',
+              hash,
+              roundData: updatedRoundData,
+              players,
+            } as LobbyUpdate);
+          }
+
+          
         } catch (error) {
           console.error('Error set started images:', error);
           socket.emit('error', { message: 'Failed to set started images' });

@@ -52,7 +52,7 @@ export async function initializeDatabase() {
       word TEXT not NULL,
       main_player_id TEXT not NULL,
       images TEXT NULL,
-      voits TEXT NULL,
+      votes TEXT NULL,
       PRIMARY KEY (id)
     );
   `);
@@ -144,9 +144,11 @@ export async function setImageToRound(idRound: string, playerId: string, imageUr
     [idRound]
   );
 
+  const newImages = round[0].images ? [round[0].images, `${playerId},${imageUrl}`].join(';') : `${playerId},${imageUrl}`;
+
   await db.run(
     'UPDATE rounds SET images = ? WHERE id = ?',
-    [[round[0].images, `${playerId},${imageUrl}`].join(';'), idRound]
+    [newImages, idRound]
   );
 
   const currentRound = await db.all<RoundRow[]>(
@@ -166,6 +168,48 @@ export async function setImageToRound(idRound: string, playerId: string, imageUr
         playerId, imageUrl
       }
     })
+  }
+}
+
+export async function voteImage(idRound: string, playerId: string, imageUrl: string) {
+  const db = getDb();
+
+  const round = await db.all<RoundRow[]>(
+    'SELECT * FROM rounds WHERE id = ?',
+    [idRound]
+  );
+
+  const newVotes = round[0].votes ? [round[0].votes, `${playerId},${imageUrl}`].join(';') : `${playerId},${imageUrl}`;
+
+  await db.run(
+    'UPDATE rounds SET votes = ? WHERE id = ?',
+    [newVotes, idRound]
+  );
+
+  const currentRound = await db.all<RoundRow[]>(
+    'SELECT * FROM rounds WHERE id = ?',
+    [idRound]
+  );
+
+  const currentVotes = currentRound[0].votes?.split(';');
+  const currentImages = currentRound[0].images?.split(';');
+
+  return {
+    id: currentRound[0].id,
+    mainPlayer: currentRound[0].main_player_id,
+    word: currentRound[0].word,
+    images: currentImages?.map((image) => {
+      const [playerId, imageUrl] = image.split(',');
+      return {
+        playerId, imageUrl
+      }
+    }),
+    votes: currentVotes?.map((image) => {
+      const [playerId, imageUrl] = image.split(',');
+      return {
+        playerId, imageUrl
+      }
+    }),
   }
 }
 

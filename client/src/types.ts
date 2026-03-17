@@ -24,15 +24,18 @@ export interface ImageInRound {
   playerId: string;
 }
 
+export interface VotesInRound extends ImageInRound {}
+
 export interface Round {
   id: string,
   word: string,
   mainPlayer: string,
   images?: ImageInRound[]
+  votes?: VotesInRound[]
 }
 
 export type LobbyUpdate = {
-  type: 'player_joined' | 'player_left' | 'status_changed' | 'start_images' | 'take-image';
+  type: 'player_joined' | 'player_left' | 'status_changed' | 'start_images' | 'take-image' | 'show-all-images' | 'vote-image' | 'show-open-images';
   player?: Player;
   players: Player[];
   hash: string;

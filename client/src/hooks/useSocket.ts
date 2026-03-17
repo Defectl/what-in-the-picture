@@ -73,6 +73,12 @@ export function useSocket(gameHash?: string) {
     }
   };
 
+  const voteImage = (hash: string, roundId: string, playerId: string, imageUrl: string) => {
+    if (socket && isConnected) {
+      socket.emit('vote-image', { hash, roundId, playerId, imageUrl });
+    }
+  };
+
   return {
     socket,
     isConnected,
@@ -82,6 +88,7 @@ export function useSocket(gameHash?: string) {
     updateStatus,
     getStartImages,
     setWordRound,
-    setImageToRound
+    setImageToRound,
+    voteImage
   };
 }

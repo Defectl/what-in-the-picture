@@ -40,7 +40,7 @@ export interface RoundRow {
   word: string;
   main_player_id: string;
   images: string | null;
-  voits: string | null;
+  votes: string | null;
 }
 
 export interface GameRow {
@@ -83,7 +83,7 @@ export interface Round {
 }
 
 export type LobbyUpdate = {
-  type: 'player_joined' | 'player_left' | 'status_changed' | 'start_images' | 'take-image';
+  type: 'player_joined' | 'player_left' | 'status_changed' | 'start_images' | 'take-image' | 'show-all-images' | 'vote-image' | 'show-open-images';
   player?: Player;
   players: Player[];
   hash: string;
